@@ -21,9 +21,40 @@ public class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return comma();
     }
 
+    private Expr comma() {
+        // evaluate first expression and discard
+        Expr expr = ternary();
+
+        while (match(COMMA)) {
+            // ignore the ',' token
+            // evaluate all expressions that come after, discarding each but the last one
+            expr = ternary();
+        }
+
+        return expr;
+    }
+
+    private Expr ternary() {
+        // Left hand side needs to be evaluated first
+        Expr expr = equality();
+
+        if (match(QUESTION_MARK)) {
+            Token question_mark = previous();
+            Expr middle = equality();
+            if (match(COLON)) {
+                Token colon = previous();
+                Expr right = ternary();
+                expr = new Expr.Ternary(expr, question_mark, middle, colon, right);
+            } else {
+                throw error(peek(), "Expect ':' after '?' in ternary expression");
+            }
+        }
+
+        return expr;
+    }
     private Expr equality() {
         Expr expr = comparison();
 

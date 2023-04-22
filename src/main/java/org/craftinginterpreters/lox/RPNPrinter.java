@@ -7,6 +7,12 @@ public class RPNPrinter implements Expr.Visitor<String> {
     String print(Expr expr) {
         return expr.accept(this);
     }
+
+    @Override
+    public String visitTernaryExpr(Expr.Ternary expr) {
+        return ""; // NOT IMPLEMENTED
+    }
+
     @Override
     public String visitBinaryExpr(Expr.Binary expr) {
         return expr.left.accept(this) + " " + expr.right.accept(this) + " " + expr.operator.lexeme;

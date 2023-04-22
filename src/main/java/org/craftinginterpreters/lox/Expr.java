@@ -3,6 +3,7 @@ package org.craftinginterpreters.lox;
 import java.util.List;
 abstract class Expr {
     interface Visitor<R> {
+        R visitTernaryExpr(Ternary expr);
         R visitBinaryExpr(Binary expr);
         R visitGroupingExpr(Grouping expr);
         R visitLiteralExpr(Literal expr);
@@ -10,6 +11,27 @@ abstract class Expr {
     }
 
     abstract <R> R accept(Visitor<R> visitor);
+    static class Ternary extends Expr {
+        Ternary(Expr cond, Token questionMark, Expr left, Token colon, Expr right) {
+            this.cond = cond;
+            this.questionMark = questionMark;
+            this.left = left;
+            this.colon = colon;
+            this.right = right;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitTernaryExpr(this);
+        }
+
+        final Expr cond;
+        final Token questionMark;
+        final Expr left;
+        final Token colon;
+        final Expr right;
+    }
+
     static class Binary extends Expr {
         Binary(Expr left, Token operator, Expr right) {
             this.left = left;
