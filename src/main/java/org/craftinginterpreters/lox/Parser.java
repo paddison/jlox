@@ -21,6 +21,14 @@ public class Parser {
     }
 
     private Expr expression() {
+        Token tk = peek();
+        // check for binary expression token at the start of an expression
+        switch (tk.type) {
+            case PLUS, SLASH, STAR, EQUAL_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BANG_EQUAL, QUESTION_MARK, COMMA -> {
+                throw error(tk, "Found binary operator at beginning of expression. Discarding...");
+//                advance();
+            }
+        }
         return comma();
     }
 
@@ -46,7 +54,7 @@ public class Parser {
             Expr middle = equality();
             if (match(COLON)) {
                 Token colon = previous();
-                Expr right = ternary();
+                Expr right = ternary(); // make a recursive call, because ?! is right associative
                 expr = new Expr.Ternary(expr, question_mark, middle, colon, right);
             } else {
                 throw error(peek(), "Expect ':' after '?' in ternary expression");
