@@ -26,7 +26,6 @@ public class Parser {
         switch (tk.type) {
             case PLUS, SLASH, STAR, EQUAL_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BANG_EQUAL, QUESTION_MARK, COMMA -> {
                 throw error(tk, "Found binary operator at beginning of expression. Discarding...");
-//                advance();
             }
         }
         return comma();
