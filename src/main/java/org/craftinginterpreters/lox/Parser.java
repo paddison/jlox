@@ -16,7 +16,7 @@ public class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
 
         return statements;
@@ -33,8 +33,20 @@ public class Parser {
         return comma();
     }
 
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) return varDeclaration();
+
+            return statement();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
+        }
+    }
+
     private Stmt statement() {
         if (match(PRINT)) return printStatement();
+        if (match(LEFT_BRACE)) return new Stmt.Block(block());
 
         return expressionStatement();
     }
@@ -44,10 +56,34 @@ public class Parser {
         consume(SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
     }
+
+    private Stmt varDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect variable name");
+
+        Expr initializer = null;
+        if (match(EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(SEMICOLON, "Expect ';' after variable declaration");
+        return new Stmt.Var(name, initializer);
+    }
+
     private Stmt expressionStatement() {
         Expr expr = expression();
         consume(SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
+    }
+
+    private List<Stmt> block() {
+        List<Stmt> statements = new ArrayList<>();
+
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
     }
 
     private Expr comma() {
@@ -65,11 +101,11 @@ public class Parser {
 
     private Expr ternary() {
         // Left hand side needs to be evaluated first
-        Expr expr = equality();
+        Expr expr = assignment();
 
         if (match(QUESTION_MARK)) {
             Token question_mark = previous();
-            Expr middle = equality();
+            Expr middle = assignment();
             if (match(COLON)) {
                 Token colon = previous();
                 Expr right = ternary(); // make a recursive call, because ?! is right associative
@@ -81,6 +117,26 @@ public class Parser {
 
         return expr;
     }
+
+    //TODO verify precedence
+    private Expr assignment() {
+        Expr expr = equality();
+
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable)expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
+    }
+
     private Expr equality() {
         Expr expr = comparison();
 
@@ -145,6 +201,10 @@ public class Parser {
         if (match(NIL)) return new Expr.Literal(null);
 
         if (match(NUMBER, STRING)) return new Expr.Literal(previous().literal);
+
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
+        }
 
         if (match(LEFT_PAREN)) {
             Expr expr = expression();

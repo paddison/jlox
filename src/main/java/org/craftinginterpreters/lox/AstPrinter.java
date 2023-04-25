@@ -7,6 +7,14 @@ public class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitVariableExpr(Expr.Variable expr) {
+        return parenthesize(expr.name.lexeme);
+    }
+
+    public String visitAssignExpr(Expr.Assign expr) {
+        return parenthesize(expr.name + " = " + expr.value);
+    }
+    @Override
     public String visitTernaryExpr(Expr.Ternary expr) {
         return parenthesize(expr.questionMark.lexeme + expr.colon.lexeme, expr.cond,  expr.left, expr.right);
     }

@@ -9,7 +9,16 @@ public class RPNPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitVariableExpr(Expr.Variable expr) {
+        return ""; // NOT IMPLEMENTED
+    }
+    @Override
     public String visitTernaryExpr(Expr.Ternary expr) {
+        return ""; // NOT IMPLEMENTED
+    }
+
+    @Override
+    public String visitAssignExpr(Expr.Assign expr) {
         return ""; // NOT IMPLEMENTED
     }
 
