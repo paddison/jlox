@@ -1,6 +1,18 @@
 package org.craftinginterpreters.lox;
 
-public class Interpreter implements Expr.Visitor<Object> {
+import java.util.List;
+
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    void interpret(List<Stmt> statements) {
+        try {
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } catch (RuntimeError error) {
+            Lox.runtimeError(error);
+        }
+    }
+
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
@@ -17,9 +29,28 @@ public class Interpreter implements Expr.Visitor<Object> {
 
         return switch (expr.operator.type) {
             case BANG -> !isTruthy(right);
-            case MINUS -> -(double)right;
+            case MINUS -> {
+                checkNumberOperand(expr.operator, right);
+                yield -(double)right;
+            }
             default -> null; // unreachable
         };
+    }
+
+    private void checkNumberOperand(Token operator, Object operand) {
+        if (operand instanceof Double) return;
+        throw new RuntimeError(operator, "Operand must be a number");
+    }
+
+    private void checkNumberOperands(Token operator, Object left, Object right) {
+        if (left instanceof Double && right instanceof Double) return;
+        throw new RuntimeError(operator, "Operands must be numbers.");
+    }
+
+    private void checkZeroDivision(Token operator, Object operand) {
+        if ((double)operand == 0.) {
+            throw new RuntimeError(operator, "Zero Division.");
+        }
     }
 
     @Override
@@ -27,24 +58,60 @@ public class Interpreter implements Expr.Visitor<Object> {
         Object left = evaluate(expr.left);
         Object right = evaluate(expr.right);
 
-        return switch (expr.operator.type) {
-            case GREATER -> (double)left > (double)right;
-            case GREATER_EQUAL -> (double)left >= (double)right;
-            case LESS -> (double)left < (double)right;
-            case LESS_EQUAL -> (double)left <= (double)right;
-            case MINUS -> (double)left - (double)right;
-            case BANG_EQUAL -> !isEqual(left, right);
-            case EQUAL_EQUAL -> isEqual(left, right);
-            case PLUS ->
-                    (left instanceof Double && right instanceof Double) ?
-                        (double)left + (double)right :
-                    (left instanceof String && right instanceof String) ?
-                        (String)left + (String)right :
-                    null;
-            case SLASH -> (double)left / (double)right;
-            case STAR -> (double)left * (double)right;
-            default -> null; // unreachable
-        };
+        switch (expr.operator.type) {
+            case GREATER -> {
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left > (double) right;
+            }
+            case GREATER_EQUAL -> {
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left >= (double) right;
+            }
+            case LESS -> {
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left < (double) right;
+            }
+            case LESS_EQUAL -> {
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left <= (double) right;
+            }
+            case MINUS -> {
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left - (double) right;
+            }
+            case BANG_EQUAL -> {
+                return !isEqual(left, right);
+            }
+            case EQUAL_EQUAL -> {
+                return isEqual(left, right);
+            }
+            case PLUS -> {
+                if (left instanceof Double && right instanceof Double) {
+                    return (double) left + (double) right;
+                }
+                if (left instanceof String && right instanceof String) {
+                    return (String) left + (String) right;
+                }
+                if (left instanceof String && right instanceof Double) {
+                    return (String) left + stringify(right);
+                }
+                if (left instanceof Double && right instanceof String) {
+                    return stringify(left) + (String) right;
+                }
+                throw new RuntimeError(expr.operator, "Operands must be two numbers or two strings.");
+            }
+            case SLASH -> {
+                checkNumberOperands(expr.operator, left, right);
+                checkZeroDivision(expr.operator, right);
+                return (double) left / (double) right;
+            }
+            case STAR -> {
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left * (double) right;
+            }
+        }
+        // unreachable
+        return null;
     }
 
     // TODO check this separately
@@ -63,6 +130,23 @@ public class Interpreter implements Expr.Visitor<Object> {
         return expr.accept(this);
     }
 
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
     private boolean isTruthy(Object object) {
         if (object == null) return false;
         if (object instanceof Boolean) return (boolean) object;
@@ -74,5 +158,19 @@ public class Interpreter implements Expr.Visitor<Object> {
         if (a == null) return false;
 
         return a.equals(b);
+    }
+
+    private String stringify(Object object) {
+        if (object == null) return "nil";
+
+        if (object instanceof Double) {
+            String text = object.toString();
+            if (text.endsWith(".0")) {
+                text = text.substring(0, text.length() - 2);
+            }
+            return text;
+        }
+
+        return object.toString();
     }
 }
