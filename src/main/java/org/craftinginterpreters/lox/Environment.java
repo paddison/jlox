@@ -17,6 +17,11 @@ public class Environment {
 
     Object get(Token name) {
         if (values.containsKey(name.lexeme)) {
+            Object val = values.get(name.lexeme);
+            if (val == null) {
+                throw new RuntimeError(name,
+                        "Trying to access uninitialized variable '" + name.lexeme + "'.");
+            }
             return values.get(name.lexeme);
         }
 
