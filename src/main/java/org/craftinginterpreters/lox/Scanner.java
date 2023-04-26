@@ -51,6 +51,10 @@ public class Scanner {
         return tokens;
     }
 
+    static String convertExprToPrintStmt(String expr) {
+        return "print " + expr + ";";
+    }
+
     private boolean isAtEnd() {
         return current >= source.length();
     }

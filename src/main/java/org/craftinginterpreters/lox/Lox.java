@@ -41,6 +41,10 @@ public class Lox {
             System.out.print("> ");
             String line = reader.readLine();
             if (line == null) break;
+            // TODO this might break in the future
+            if (!line.endsWith(";")) {
+                line = Scanner.convertExprToPrintStmt(line);
+            }
             run(line);
             hadError = false;
             hadRuntimeError = false;
