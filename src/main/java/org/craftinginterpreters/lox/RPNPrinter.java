@@ -18,6 +18,11 @@ public class RPNPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitLogicalExpr(Expr.Logical expr) {
+        return ""; // NOT IMPLEMENTED
+    }
+
+    @Override
     public String visitAssignExpr(Expr.Assign expr) {
         return ""; // NOT IMPLEMENTED
     }
