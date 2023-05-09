@@ -33,7 +33,8 @@ public class GenerateAst {
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Print      : Expr expression",
                 "Var        : Token name, Expr initializer",
-                "While      : Expr condition, Stmt body"
+                "While      : Expr condition, Stmt body",
+                "Break      : "
         ));
     }
 
@@ -90,6 +91,7 @@ public class GenerateAst {
         // Store parameters in fields.
         String[] fields = fieldList.split(", ");
         for (String field : fields) {
+            if (field.length() == 0) continue;
             String name = field.split(" ")[1];
             writer.println("            this." + name + " = " + name + ";");
         }
