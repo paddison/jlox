@@ -1,13 +1,20 @@
 package org.craftinginterpreters.lox;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
-    private final Stack<Map<String, Boolean>> scopes = new Stack<>();
+
+    private class VariableStatus {
+        protected boolean isInitialized;
+        protected boolean isRead;
+
+        VariableStatus(boolean isInitialized, boolean isRead) {
+            this.isInitialized = isInitialized;
+            this.isRead = isRead;
+        }
+    }
+    private final Stack<Map<String, VariableStatus>> scopes = new Stack<>();
     private FunctionType currentFunction = FunctionType.NONE;
     private boolean isLoop = false;
 
@@ -43,6 +50,14 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         beginScope();
         resolve(stmt.statements);
         endScope();
+        return null;
+    }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        declare(stmt.name);
+        define(stmt.name);
+        access(stmt.name, scopes.size() - 1);
         return null;
     }
 
@@ -174,7 +189,7 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitVariableExpr(Expr.Variable expr) {
-        if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme) == Boolean.FALSE) {
+        if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme).isInitialized == Boolean.FALSE) {
             Lox.error(expr.name, "Can't read local variable in its own initializer.");
         }
 
@@ -191,32 +206,45 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void beginScope() {
-        scopes.push(new HashMap<String, Boolean>());
+        scopes.push(new HashMap<String, VariableStatus>());
     }
 
     private void endScope() {
-        scopes.pop();
+        Map<String, VariableStatus> scope = scopes.pop();
+        for (Map.Entry<String, VariableStatus> entry : scope.entrySet()) {
+            if (!entry.getValue().isRead) {
+                Lox.error(new Token(TokenType.VAR, entry.getKey(), null, -1),
+                        "Variable is never read.");
+            }
+        }
     }
 
     private void declare(Token name) {
         if (scopes.isEmpty()) return;
 
-        Map<String, Boolean> scope = scopes.peek();
+        Map<String, VariableStatus> scope = scopes.peek();
 
         if (scope.containsKey(name.lexeme)) {
             Lox.error(name, "Already a variable with this name in this scope.");
         }
-        scope.put(name.lexeme, false);
+        scope.put(name.lexeme, new VariableStatus(false, false));
     }
 
     private void define(Token name) {
         if (scopes.isEmpty()) return;
-        scopes.peek().put(name.lexeme, true);
+        scopes.peek().put(name.lexeme, new VariableStatus(true, false));
+    }
+
+    private void access(Token name, int index) {
+        if (scopes.isEmpty()) return;
+        scopes.get(index).put(name.lexeme, new VariableStatus(true, true));
     }
 
     private void resolveLocal(Expr expr, Token name) {
         for (int i = scopes.size() - 1; i >= 0; i--) {
             if (scopes.get(i).containsKey(name.lexeme)) {
+                // mark variable as read
+                access(name, i);
                 interpreter.resolve(expr, scopes.size() - 1 - i);
             }
         }
