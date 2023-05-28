@@ -62,9 +62,9 @@ public class Parser {
 
     private Stmt breakStatement() {
         if (!isLoop) error(previous(), "Break statement only allowed in while or for loop.");
+        Token keyword = previous();
         consume(SEMICOLON, "Expect ';' after break.");
-
-        return new Stmt.Break();
+        return new Stmt.Break(keyword);
     }
 
     private Stmt forStatement() {

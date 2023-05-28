@@ -134,7 +134,8 @@ abstract class Stmt {
     }
 
     static class Break extends Stmt {
-        Break() {
+        Break(Token keyword) {
+            this.keyword = keyword;
         }
 
         @Override
@@ -142,6 +143,7 @@ abstract class Stmt {
             return visitor.visitBreakStmt(this);
         }
 
+        final Token keyword;
     }
 
 }
