@@ -23,6 +23,11 @@ public class RPNPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitSetExpr(Expr.Set expr) {
+        return null;
+    }
+
+    @Override
     public String visitAssignExpr(Expr.Assign expr) {
         return ""; // NOT IMPLEMENTED
     }
@@ -34,6 +39,11 @@ public class RPNPrinter implements Expr.Visitor<String> {
 
     @Override
     public String visitCallExpr(Expr.Call expr) {
+        return null;
+    }
+
+    @Override
+    public String visitGetExpr(Expr.Get expr) {
         return null;
     }
 
